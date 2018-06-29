@@ -1,3 +1,17 @@
+#=
+This file provides a parser for the logs obtained with the instrumentation,
+either using ccall(:jl_start/stop_instrumentation, Void, ()) or directly through
+Pkg.test.
+The return type of `parse_perf` is `Table`, defined below using the intermediate
+types MSig, CSig and CInfo.
+
+A variety of `sort_by...` functions are provided below, converting the Table
+(or BareTable, which is a simplified version of Table) into a new dictionnary,
+allowing for easy access and computations. See the documentation of the
+functions directly.
+=#
+
+
 FunctionSig = String
 
 SiteSig = UInt32

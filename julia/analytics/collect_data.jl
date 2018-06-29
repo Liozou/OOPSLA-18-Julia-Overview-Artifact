@@ -1,6 +1,11 @@
 include("measure_dispatch.jl")
 include("eachmethod.jl")
 
+#=
+This file provides utilities to extract and save a number of intermediate
+metrics, starting from the .dyns and .satic files.
+=#
+
 """
 Load a directory containing .dyn files in memory.
 Return the names of the studied packages and the tables
@@ -107,6 +112,11 @@ function methods_per_function(t::ShallowTable)
     return [length(v) for v in values(t)]
 end
 
+"""
+Output the list of the number of methods each function/arity has.
+The arity is the number of arguments to a function. Here, two methods with a
+different arities are considered to belong to two different functions.
+"""
 function methods_per_functionarity(t::ShallowTable)
     ret = Int[]
     for val in values(t)
@@ -121,6 +131,9 @@ function methods_per_functionarity(t::ShallowTable)
     return ret
 end
 
+"""
+Output the list of the number of actual calls that happened at each call site.
+"""
 function call_number_per_callsite(t::Table)
     ret = Int[]
     for (f, sites) in t
@@ -131,6 +144,9 @@ function call_number_per_callsite(t::Table)
     return ret
 end
 
+"""
+Output the list of the number of calls each method had.
+"""
 function call_number_per_method(t::Table)
     ret = Int[]
     for (f, sites) in t
@@ -143,6 +159,9 @@ function call_number_per_method(t::Table)
     return ret
 end
 
+"""
+Output the list of the number of calls that corresponded to each call signature.
+"""
 function call_number_per_call_signature(t::Table)
     ret = Int[]
     for (f, sites) in t
@@ -209,19 +228,10 @@ function targets_per_callsite_with_proportions(t::Table)
     return onlyone, targets_per_callsite
 end
 
-function compact_per_callsite(allresults)
-    onlyone = 0
-    per_callsite = Dict{Int, Tuple{Int, Int}}()
-    for (toadd, dict) in allresults
-        onlyone+=toadd
-        for (x, (yless, ymore)) in dict
-            y1, y2 = get(per_callsite, x, (0,0))
-            per_callsite[x] = (yless+y1, ymore+y2)
-        end
-    end
-    return onlyone, per_callsite
-end
-
+"""
+For each call site, count the number of targets and record whether it is 1, 2,
+or 3 and more, in three separated values.
+"""
 function target_per_callsite_one_two_plus(t::Table)
     one = 0; two = 0; plus = 0
     for (f, sites) in t
@@ -261,67 +271,6 @@ function export_data(names::Vector{String}, file::AbstractString, data)
     end
 end
 
-"""
-Export the different metrics.
-"""
-function export_all(target::AbstractString, names::Vector{String}, tables::Vector{Table})
-    targets_site = Vector{Int}[]; methods_site = Vector{Int}[];
-    methods_call = Vector{Int}[]; methods_call = Vector{Int}[];
-    methods_function = Vector{Int}[]; arguments_dispatch = Vector{Vector{Int}}[]
-    all = Tuple{Vector{Vector{Int}}, Vector{Int}, Vector{Int}, Vector{Int}, Vector{Int}}[]
-    for (i, t) in enumerate(tables)
-        try
-            push!(all, collect_data(t))
-        catch
-            println("PKG: $(names[i])")
-            rethrow()
-        end
-    end
-    arguments_dispatch, targets_site, methods_site, methods_call, methods_function = zip(all...)
-    mkpath(target)
-    export_data(names, target * "arguments_per_dispatch.txt", arguments_dispatch)
-    export_data(names, target * "targets_per_site.txt", targets_site)
-    export_data(names, target * "methods_per_site.txt", methods_site)
-    export_data(names, target * "methods_per_call.txt",methods_call)
-    export_data(names, target * "methods_per_function.txt", methods_function)
-end
-
-"""
-Differentiate depending on the original module being either Core, Base, a user-
-defined module or undefined, then export the metrics.
-"""
-function export_core_base_other(target::AbstractString, names::Vector{String}, tables::Vector{Table})
-    cores = Table[]; bases = Table[]; packages = Table[]; undefineds = Table[]
-    info("Sorting tables")
-    for table in tables
-        core = Table(); base = Table(); package = Table(); undefined = Table()
-        t = sort_by_module(table)
-        for (k,v) in t
-            if k == "Core"
-                core = merge(core, v)
-            elseif k == "Base"
-                base = merge(base, v)
-            elseif k == "" || k == "#UNDEFINED"
-                undefined = merge(undefined, v)
-            else
-                package = merge(package, v)
-            end
-        end
-        push!(cores, core)
-        push!(bases, base)
-        push!(packages, package)
-        push!(undefineds, undefined)
-    end
-    info("  EXPORTING CORE")
-    export_all(target * "core/", names, cores)
-    info("  EXPORTING BASE")
-    export_all(target * "base/", names, bases)
-    info("  EXPORTING PACKAGE")
-    export_all(target * "package/", names, packages)
-    info("  EXPORTING UNDEFINED")
-    export_all(target * "undefined/", names, undefineds)
-end
-
 function add_merge(dict, key, val)
     if haskey(dict, key)
         dict[key] = merge(dict[key], val)
@@ -330,6 +279,16 @@ function add_merge(dict, key, val)
     end
 end
 
+"""
+Collect all the metrics given by argument `functions`, requiring both .static
+and .dyn files.
+
+Filter out functions that are defined in Core, Base, and anonymous and builtin
+functions. Do the computations twice, once for all kept functions and the
+second time without the functions that only have one method.
+The collected data is saved respectively in `data/function` and
+`data/nonsinglefunction`.
+"""
 function collect_export_specific(logs_dir::AbstractString, functions)
     statics = Dict{String, StaticTable}()
     tables = Dict{String, Table}()
@@ -416,54 +375,6 @@ function compare_static(pkg::String, log_address::String)
     open("$addr/unk/$pkg.unk", "w") do f
         println(f, unk)
     end
-end
-
-"""
-Export the metrics, differentiating on the module of origin, the function being
-user or compiler-defined and joining static data to the analysis.
-"""
-function export_joint(static_address::AbstractString, dyn_address::AbstractString)
-    statics = Dict{String, StaticTable}()
-    logs = Dict{String, Table}()
-    info("LOADING STATIC")
-    for f in readdir(static_address) #*.static
-        info("  Loading $f")
-        statics[f[1:end-7]] = eval(parse(readline(static_address*f)))
-    end
-    info("LOADING dynS")
-    for f in readdir(dyn_address) #*.dyn
-        info("  Loading $f")
-        logs[f[1:end-4]] = eval(parse(readline(dyn_address*f)))
-    end
-    names = String[]
-    functions = Table[];
-    nonsinglefunctions = Table[]
-    for (name, t) in logs
-        if !haskey(statics, name)
-            continue
-        end
-        info("EXTRACTING FROM $name")
-        static = statics[name]
-        push!(names, name)
-        fun = Table();
-        nonsinglefun = Table()
-        for (f, sites) in t
-            if !issymbol(f)
-                fun[f] = sites
-                if length(static[f]) > 1
-                    nonsinglefun[f] = sites
-                end
-            end
-        end
-        push!(functions, fun);
-        push!(nonsinglefunctions, nonsinglefun)
-    end
-    mkpath(static_address*"../extracted/function/")
-    mkpath(static_address*"../extracted/nonsinglefunction/")
-    info("Exporting functions")
-    export_core_base_other(static_address * "../data/function/", names, functions)
-    info("Exporting nonsinglefunctions")
-    export_core_base_other(static_address * "../data/nonsinglefunction/", names, nonsinglefunctions)
 end
 
 """
@@ -602,11 +513,11 @@ function muschevici_metrics(t::ShallowTable)
     end
     dispatch_ratio = mean(num_methods)
     choice_ratio = vecdot(num_methods, num_methods)/sum(num_methods)
-    degree_of_dispatch = mean(num_arguments)
+    degree_dispatch = mean(num_arguments)
     rightmost_dispatch = mean(pos_arguments)
     n = length(num_arguments)
     discrepancy = count(num_arguments[i] != pos_arguments[i] for i in 1:n)/n
-    return dispatch_ratio, choice_ratio, degree_of_dispatch, rightmost_dispatch, discrepancy
+    return dispatch_ratio, choice_ratio, degree_dispatch, rightmost_dispatch, discrepancy
 end
 
 function muschevici_metrics_with_arity(t::ShallowTable)
@@ -630,14 +541,14 @@ function muschevici_metrics_with_arity(t::ShallowTable)
     end
     dispatch_ratio = mean(num_methods)
     choice_ratio = vecdot(num_methods, num_methods)/sum(num_methods)
-    degree_of_dispatch = mean(num_arguments)
+    degree_dispatch = mean(num_arguments)
     rightmost_dispatch = mean(pos_arguments)
     n = length(num_arguments)
     discrepancy = count(num_arguments[i] != pos_arguments[i] for i in 1:n)/n
-    return dispatch_ratio, choice_ratio, degree_of_dispatch, rightmost_dispatch, discrepancy
+    return dispatch_ratio, choice_ratio, degree_dispatch, rightmost_dispatch, discrepancy
 end
 
-function degree_of_dispatch_precise(t::ShallowTable)
+function degree_of_dispatch(t::ShallowTable)
     num_arguments = Int[]
     for (f, methods) in t
         ret_num, _ = argument_position_dispatch(methods)
@@ -736,7 +647,7 @@ function export_static(logs_dir::AbstractString, suffix="")
         push!(arguments_dispatch, arguments_per_dispatch(shallow))
         push!(muschevici, muschevici_metrics(shallow))
         push!(muschevici_with_arity, muschevici_metrics_with_arity(shallow))
-        push!(dod, (degree_of_dispatch_precise(shallow)...))
+        push!(dod, (degree_of_dispatch(shallow)...))
     end
     export_data(names, static_address*"../data/static$suffix/methods_per_functionarity.txt", methods_functionarity)
     export_data(names, static_address*"../data/static$suffix/arguments_per_dispatch.txt", arguments_dispatch)
@@ -763,4 +674,4 @@ function set_logs_dir(logs_dir)
     nothing
 end
 
-set_logs_dir("$JULIA_HOME/../../logs/")
+#set_logs_dir("$JULIA_HOME/../../logs/")

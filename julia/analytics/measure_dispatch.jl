@@ -1,5 +1,11 @@
 include("parse_performance.jl")
 
+#=
+This file provides utilities for automatic data collection during package
+testing. In particular, it sets the `potentialMethods` field of a CInfo (see
+`parse_performance.jl`) according to the available static data.
+=#
+
 """
 Merge two call tables by removing the number of calls and merging the potential
 methods.

@@ -1,3 +1,11 @@
+#=
+This file provides a simple function `eachmethod` to iterate over the methods
+defined in a module, or, by default, all the accessible methods.
+It also provides the `collect_all_methods` utility to record all the currently
+accessible methods in a StaticTable object. This is used to obtain static data
+on tested packages.
+=#
+
 loaded_modules_array() = [Main]
 function names_kwd(x::Module; all::Bool=false)
     return names(x, all)
@@ -46,6 +54,8 @@ function eachmethod(f, mods = loaded_modules_array())
     end
 end
 
+
+
 import Base.length
 length(::Void) = 0
 function length(x::TypeMapEntry)
@@ -84,6 +94,9 @@ end
 
 StaticTable = Dict{String, Vector{Met}}
 
+"""
+Record all the accessible methods to a StaticTable.
+"""
 function collect_all_methods()
     d = StaticTable()
     eachmethod() do m
