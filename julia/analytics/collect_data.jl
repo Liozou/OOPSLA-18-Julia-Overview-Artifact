@@ -227,10 +227,8 @@ function target_per_callsite_one_two_plus(t::Table)
     for (f, sites) in t
         for (s, methods) in sites
             num_call_signature = 0
-            #num_calls = 0
             for (m, calls) in methods
                 num_call_signature += length(calls)
-                #num_calls += number_calls(calls)
             end
             if num_call_signature == 1
                 one += 1
@@ -244,24 +242,6 @@ function target_per_callsite_one_two_plus(t::Table)
     end
     return one, two, plus
 end
-
-
-
-#=
-"""
-Extract the different metrics from the list of the tables.
-"""
-function collect_data(t::Table)
-    targets_site = targets_per_callsite(t)
-    methods_site = methods_per_site(t)
-    methods_call = applicable_methods_per_call(t)
-    shallow = to_shallowtable(t)
-    methods_function = methods_per_function(shallow)
-    arguments_dispatch = arguments_per_dispatch(shallow)
-    #functions = [length(x) for x in methods_function]
-    #methods = [sum(x) for x in methods_function]
-    return arguments_dispatch, targets_site, methods_site, methods_call, methods_function
-end=#
 
 import JSON
 
@@ -285,7 +265,6 @@ end
 Export the different metrics.
 """
 function export_all(target::AbstractString, names::Vector{String}, tables::Vector{Table})
-    #info("Collecting data")
     targets_site = Vector{Int}[]; methods_site = Vector{Int}[];
     methods_call = Vector{Int}[]; methods_call = Vector{Int}[];
     methods_function = Vector{Int}[]; arguments_dispatch = Vector{Vector{Int}}[]
@@ -300,20 +279,11 @@ function export_all(target::AbstractString, names::Vector{String}, tables::Vecto
     end
     arguments_dispatch, targets_site, methods_site, methods_call, methods_function = zip(all...)
     mkpath(target)
-    #info("Exporting data")
     export_data(names, target * "arguments_per_dispatch.txt", arguments_dispatch)
     export_data(names, target * "targets_per_site.txt", targets_site)
     export_data(names, target * "methods_per_site.txt", methods_site)
     export_data(names, target * "methods_per_call.txt",methods_call)
     export_data(names, target * "methods_per_function.txt", methods_function)
-    #mkpath(target * "extracted/")
-    #=
-    for i in eachindex(names)
-        open(target * "extracted/$(names[i]).dyn", "w") do f
-            println(f, tables[i])
-        end
-    end
-    =#
 end
 
 """
@@ -371,7 +341,7 @@ function collect_export_specific(logs_dir::AbstractString, functions)
     info("LOADING DYNS")
     for f in readdir(logs_dir*"dyns/") #*.dyn
         info("  Loading $f")
-        tables[f[1:end-7]] = eval(parse(readline(logs_dir*"dyns/"*f)))
+        tables[f[1:end-4]] = eval(parse(readline(logs_dir*"dyns/"*f)))
     end
     names = String[]
 
@@ -449,33 +419,6 @@ function compare_static(pkg::String, log_address::String)
 end
 
 """
-Refine a directory of dyns by eliminating the methods called in the same
-package they were defined in.
-"""
-function refine_without_same_package(source::AbstractString)
-    tables = Table[]
-    names = String[]
-    for f in readdir(source)
-        push!(names, split(f, '.')[1])
-        push!(tables, eval(parse(readline(source*f))))
-    end
-    ret = Table[]
-    for i in eachindex(names)
-        t = tables[i]
-        sorted = sort_by_module(t)
-        r = Table()
-        for (k,v) in sorted
-            if !(k in ["Core", "Base", "", "#UNDEFINED", names[i]])
-                r = merge(r, v)
-            end
-        end
-        push!(ret, r)
-    end
-    export_all(source*"refine_without_same_package/", names, ret)
-end
-
-
-"""
 Export the metrics, differentiating on the module of origin, the function being
 user or compiler-defined and joining static data to the analysis.
 """
@@ -490,11 +433,10 @@ function export_joint(static_address::AbstractString, dyn_address::AbstractStrin
     info("LOADING dynS")
     for f in readdir(dyn_address) #*.dyn
         info("  Loading $f")
-        logs[f[1:end-7]] = eval(parse(readline(dyn_address*f)))
+        logs[f[1:end-4]] = eval(parse(readline(dyn_address*f)))
     end
     names = String[]
-    #nonsingles = Table[]; singles = Table[]
-    functions = Table[]; #symbols = Table[]
+    functions = Table[];
     nonsinglefunctions = Table[]
     for (name, t) in logs
         if !haskey(statics, name)
@@ -503,26 +445,8 @@ function export_joint(static_address::AbstractString, dyn_address::AbstractStrin
         info("EXTRACTING FROM $name")
         static = statics[name]
         push!(names, name)
-        #nonsingle = Table(); single = Table()
-        fun = Table(); #sym = Table();
+        fun = Table();
         nonsinglefun = Table()
-        #=for (f, sites) in t
-            if haskey(static, f)
-                if length(static[f]) > 1 # multiple method definitions
-                    nonsingle[f] = sites
-                    if !issymbol(f)
-                        nonsinglefun[f] = sites
-                    end
-                else
-                    single[f] = sites
-                end
-            end
-            if issymbol(f)
-                sym[f] = sites
-            else
-                fun[f] = sites
-            end
-        end=#
         for (f, sites) in t
             if !issymbol(f)
                 fun[f] = sites
@@ -531,36 +455,13 @@ function export_joint(static_address::AbstractString, dyn_address::AbstractStrin
                 end
             end
         end
-        #push!(nonsingles, nonsingle); push!(singles, single)
-        push!(functions, fun); #push!(symbols, sym);
+        push!(functions, fun);
         push!(nonsinglefunctions, nonsinglefun)
     end
-    #mkpath(static_address*"../extracted/nonsingle/")
-    #mkpath(static_address*"../extracted/single/")
     mkpath(static_address*"../extracted/function/")
-    #mkpath(static_address*"../extracted/symbol/")
     mkpath(static_address*"../extracted/nonsinglefunction/")
-    #=
-    for i in eachindex(names)
-        open(static_address*"../extracted/nonsingle/$(names[i]).dyn", "w") do file
-            println(file, nonsingles[i]) end
-        open(static_address*"../extracted/single/$(names[i]).dyn", "w") do file
-            println(file, singles[i]) end
-        open(static_address*"../extracted/function/$(names[i]).dyn", "w") do file
-            println(file, functions[i]) end
-        open(static_address*"../extracted/symbol/$(names[i]).dyn", "w") do file
-            println(file, symbols[i]) end
-        open(static_address*"../extracted/nonsinglefunction/$(names[i]).dyn", "w") do file
-            println(file, nonsinglefunctions[i]) end
-    end=#
-    #info("Exporting nonsingles")
-    #export_core_base_other(static_address * "../data/nonsingle/", names, nonsingles)
-    #info("Exporting singles")
-    #export_core_base_other(static_address * "../data/single/", names, singles)
     info("Exporting functions")
     export_core_base_other(static_address * "../data/function/", names, functions)
-    #info("Exporting symbols")
-    #export_core_base_other(static_address * "../data/symbol/", names, symbols)
     info("Exporting nonsinglefunctions")
     export_core_base_other(static_address * "../data/nonsinglefunction/", names, nonsinglefunctions)
 end
@@ -586,26 +487,6 @@ function static_separate_package(d::StaticTable)
     end
     return ret
 end
-
-#=
-"""
-Output the list of the number of methods each function/arity has.
-"""
-function methods_per_functionarity(d::StaticTable)
-    pruned = static_separate_package(static_separate_functions(d))
-    ret = Int[]
-    for (f, val) in pruned
-        collect = Dict{Int, Int}()
-        for x in val
-            collect[x.nargs] = get(collect, x.nargs, 0) + 1
-        end
-        for v in values(collect)
-            push!(ret, v)
-        end
-    end
-    return ret
-end
-=#
 
 """
 Count the number of specializations per method.
@@ -866,17 +747,6 @@ function export_static(logs_dir::AbstractString, suffix="")
     export_data(names, static_address*"../data/static$suffix/degree_of_dispatch.txt", dod)
 end
 
-function sort_study_redefinitions()
-    names = String[]
-    occur = Int[]
-    for (s, m) in study_redefinitions
-        push!(names, s)
-        push!(occur, length(m))
-    end
-    sortindex = reverse(sortperm(occur))
-    return ([names[i] for i in sortindex], [occur[i] for i in sortindex])
-end
-
 """
 To launch in the logs directory to collect the different metrics
 """
@@ -890,7 +760,7 @@ function set_logs_dir(logs_dir)
         (targets_per_callsite, methods_per_site, applicable_methods_per_call,
         call_number_per_callsite, call_number_per_method, call_number_per_call_signature,
         target_per_callsite_one_two_plus))
-    #collect_export_per_callsite(logs_dir, names, funs, nonsinglefunctions,
-    #    (methods_per_callsite_with_proportions, targets_per_callsite_with_proportions))
     nothing
 end
+
+set_logs_dir("$JULIA_HOME/../../logs/")
