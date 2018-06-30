@@ -1,7 +1,7 @@
 GENERATED_INPUT_DIR:=input
 C_SHOOTOUT:=cshootout
 PY_SHOOTOUT:=pyshootout
-JL_SHOOTOUT:=shootout
+JL_SHOOTOUT:=jlshootout
 JL_NOTY_SHOOTOUT:=jlnoty-shootout
 JS_SHOOTOUT:=jsshootout
 FASTA_BIN:=$(C_SHOOTOUT)/fasta.run
