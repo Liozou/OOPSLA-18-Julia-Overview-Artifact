@@ -129,7 +129,7 @@ The files themselves are composed of lines starting with `PackageName:` followed
 
 Many relevant metrics can be obtained by merging the data from different packages (using either strict or soft elimination). The functions from `analytics/combine_data.jl` retrieve data from the `logs/data/` folder and process the combined results for various metrics, such as the number of methods per function for instance.
 
-##### Benchmarking
+##### Other Versions of Julia
 
 The instrumented Julia installation from this artifact runs much slower than the standard one, mostly because method devirtualization is disabled in order to properly record all the function calls. It is thus not suitable for benchmarking.
 
@@ -159,12 +159,12 @@ and recompile Julia. This recompilation should take less than fifteen minutes.
 
 Don't forget to undo the previous modification between each step to specifically benchmark with one of the features disabled.
 
-## Benchmarks
+### Micro-benchmarks
 
 Benchmark source code for Julia, untyped Julia, JavaScript, C, and Python is included as part of the artifact, along with
 our execution harness. The VM image contains their source, but is not configured to execute them.
 
-## Prerequisites
+#### Prerequisites
 
 The following prerequisites are required to run the benchmarks:
 
@@ -176,7 +176,7 @@ The following prerequisites are required to run the benchmarks:
 
 Node dependencies are in the package-lock.json file inside the jsshootout folder.
 
-## Organization
+#### Organization
 
 Benchmarks reside within the `benchmarks` folder, which contains both the implementations and the runner infrastructure.
 Execution is via the makefile at the top level, which both compiles and runs the benchmarks on demand. The folders serve
@@ -192,7 +192,7 @@ the following purposes:
 
 Untyped Julia benchmarks are supplemental to the data in the paper.
 
-## Running
+#### Running
 
 Each language's benchmark suite has its own target, and the default target is the Julia benchmark. Available targets are:
 
