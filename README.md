@@ -172,6 +172,7 @@ The following prerequisites are required to run the benchmarks:
 * **Node.js v8.11.1 or later**
 * **Julia 0.6.2**
 * **gcc 6.3.0 or later**
+* **R 3.4.4** (to recreate the figure in the paper)
 
 Node dependencies are in the package-lock.json file inside the jsshootout folder.
 
@@ -189,22 +190,25 @@ the following purposes:
 * `pyshootout` for Python benchmarks
 * `results` for the data in the figure as well as the scripts to generate the figure from the paper.
 
+Untyped Julia benchmarks are supplemental to the data in the paper.
+
 ## Running
 
-Each language has its own benchmark target, defaulting to the Julia benchmarks ran on the full problem size. Available targets are:
+Each language's benchmark suite has its own target, and the default target is the Julia benchmark. Available targets are:
 
 * `run_jl_benchmarks` (default) for running the typed Julia benchmarks;
 * `run_jl_benchmakrs_noty` for untyped versions of typed Julia benchmarks;
 * `run_py_benchmarks` for Python benchmarks;
 * `run_js_benchmarks` for JavaScript benchmarks;
-* `run_c_benchmarks` for C benchmarks.
+* `run_c_benchmarks` for C benchmarks;
+* `run_pypy_benchmarks` for (supplemental) PyPy benchmarks (requires PyPy).
 
-The benchmarks, from the Programming Language Benchmark Game, are parameterized over probelm sizes defined in `benchmark_defns`.
+The benchmarks, from the Programming Language Benchmark Game, are parameterized over problem sizes defined in `benchmark_defns`.
 Numbers reported in the paper come from `full_size.sh`, but `small_size.sh` can be used while testing the environment for quick
 execution. Which benchmark size is used is defined by the `BENCHMARK` variable in the Makefile.
 
 The Makefile allows the specification of the implementation for each language via the `JULIA` and `PYTHON` variables. It defaults
 to assuming that they are on the path with names `julia` and `python3`, respectively, but this can be configured by changing their
-definitions in the makefile.
+definitions in the Makefile.
 
-By default, performance results will only be written to stdout. To specify a target folder, set the `OUTPUT` variable in the makefile.
+By default, performance results will only be written to stdout. To specify a target folder, set the `OUTPUT` variable in the Makefile.
