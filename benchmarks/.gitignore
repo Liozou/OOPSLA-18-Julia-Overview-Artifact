@@ -1,0 +1,11 @@
+jl-bti/julia/**
+**/*~
+**/*.o
+**/*.run
+inputs/*
+**.inp
+**/#*#
+shootout/*.txt
+shootout_source/**
+other_impls/**
+jsshootout/node_modules/**

@@ -1,0 +1,10 @@
+export BTREE_DEPTH=14
+export FANNKUCH_SIZE=10
+export FASTA_SIZE=2500000
+export KNUC_FILE=$1/fasta100k.inp
+export MANDELBROT_SIZE=1000
+export NBODY_SIZE=500000
+export PIDIGITS_NUM=5000
+export REGEX_FILE=$1/fasta100k.inp
+export REVCOMP_FILE=$1/fasta5m.inp
+export SPECTRALNORM_SIZE=1000
