@@ -720,7 +720,7 @@ function test!(pkg::AbstractString,
                 run(pipeline(`cat $test_path`, stdout=tmp1))
                 run(pipeline(`echo "ccall(:jl_start_instrumentation, Void, ())"`,
                     pipeline(`cat - $tmp1`, stdout=tmp2)))
-                run(pipeline(`echo "ccall(:jl_end_instrumentation, Void, ())"
+                run(pipeline(`echo "ccall(:jl_end_instrumentation, Void, ())
 flush(STDERR)
 include(\"$JULIA_HOME/../../analytics/collect_data.jl\")
 analyze_package(\"$pkg\", \"$log\")
