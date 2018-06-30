@@ -159,4 +159,52 @@ and recompile Julia. This recompilation should take less than fifteen minutes.
 
 Don't forget to undo the previous modification between each step to specifically benchmark with one of the features disabled.
 
-# TODO: talk about the micro-benchmarks
+## Benchmarks
+
+Benchmark source code for Julia, untyped Julia, JavaScript, C, and Python is included as part of the artifact, along with
+our execution harness. The VM image contains their source, but is not configured to execute them.
+
+## Prerequisites
+
+The following prerequisites are required to run the benchmarks:
+
+* **Python 3.5.3 or later**
+* **Node.js v8.11.1 or later**
+* **Julia 0.6.2**
+* **gcc 6.3.0 or later**
+
+Node dependencies are in the package-lock.json file inside the jsshootout folder.
+
+## Organization
+
+Benchmarks reside within the `benchmarks` folder, which contains both the implementations and the runner infrastructure.
+Execution is via the makefile at the top level, which both compiles and runs the benchmarks on demand. The folders serve
+the following purposes:
+
+* `benchmark_defns` defining benchmark sizes;
+* `cshootout` for C benchmarks
+* `jlnoty-shootout` for untyped versions of Julia benchmarks that had types originally
+* `jlshootout` for Julia benchmarks with all original type annotations
+* `jsshooutout` for Javascript benchmarks
+* `pyshootout` for Python benchmarks
+* `results` for the data in the figure as well as the scripts to generate the figure from the paper.
+
+## Running
+
+Each language has its own benchmark target, defaulting to the Julia benchmarks ran on the full problem size. Available targets are:
+
+* `run_jl_benchmarks` (default) for running the typed Julia benchmarks;
+* `run_jl_benchmakrs_noty` for untyped versions of typed Julia benchmarks;
+* `run_py_benchmarks` for Python benchmarks;
+* `run_js_benchmarks` for JavaScript benchmarks;
+* `run_c_benchmarks` for C benchmarks.
+
+The benchmarks, from the Programming Language Benchmark Game, are parameterized over probelm sizes defined in `benchmark_defns`.
+Numbers reported in the paper come from `full_size.sh`, but `small_size.sh` can be used while testing the environment for quick
+execution. Which benchmark size is used is defined by the `BENCHMARK` variable in the Makefile.
+
+The Makefile allows the specification of the implementation for each language via the `JULIA` and `PYTHON` variables. It defaults
+to assuming that they are on the path with names `julia` and `python3`, respectively, but this can be configured by changing their
+definitions in the makefile.
+
+By default, performance results will only be written to stdout. To specify a target folder, set the `OUTPUT` variable in the makefile.
