@@ -129,7 +129,7 @@ The files themselves are composed of lines starting with `PackageName:` followed
 
 Many relevant metrics can be obtained by merging the data from different packages (using either strict or soft elimination). The functions from `analytics/combine_data.jl` retrieve data from the `logs/data/` folder and process the combined results for various metrics, such as the number of methods per function for instance.
 
-##### Other Versions of Julia
+##### Other versions of Julia
 
 The instrumented Julia installation from this artifact runs much slower than the standard one, mostly because method devirtualization is disabled in order to properly record all the function calls. It is thus not suitable for benchmarking.
 
