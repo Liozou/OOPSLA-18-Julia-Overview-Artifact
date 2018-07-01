@@ -128,13 +128,8 @@ end
 Analyze the log for a given package and creates a dyn.
 """
 function analyze_package(name::String, log_address::String)
-    info("Parsing $name")
     funs = parse_perf(log_address)
-
-    info("Analyzing $name")
     result = setPotentialMethods(funs)
-
-    info("Saving $name")
     log_dir = join(split(log_address, '/')[1:end-1], '/')
     mkpath("$log_dir/dyns/")
     open("$log_dir/dyns/$name.dyn", "w") do f

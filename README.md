@@ -2,9 +2,14 @@
 
 
 ## Getting Started
-- Download the Julia source files from either https://github.com/JuliaLang/julia/releases/tag/v0.6.2 or https://github.com/JuliaLang/julia/tree/v0.6.2. Clone them to your home directory. This artifact is made to support Julia v0.6.2: it may not work with subsequent versions of Julia.
-- Merge the contents of the `julia/` folder of the artifact with the one you just created in your home directory.
-- Build Julia by using the command `make` with no option in the `julia/` repository located in your home directory. This can take up to a few hours.
+
+If you are using the virtual machine included in the artifact, no further installation is required, you can launch it and Julia v0.6.2 will already be installed.
+
+Otherwise:
+- Download the Julia source files from either https://github.com/JuliaLang/julia/releases/tag/v0.6.2 or https://github.com/JuliaLang/julia/tree/v0.6.2. This artifact is made to support Julia v0.6.2: it may not work with subsequent versions of Julia.
+- Merge the contents of the `julia/` folder of the artifact with the Julia repository you just downloaded.
+- Build Julia by using the command `make` with no option in the Julia repository. This can take up to a few hours.
+- Install the JSON package by executing `Pkg.add("JSON")` from the Julia REPL. The REPL can be launched by executing `$JULIA_DIRECTORY/usr/bin/julia`. This should take a few minutes.
 
 The main modifications in the code of the modified files are placed as
 ```C
@@ -30,17 +35,17 @@ These combined metrics allow to give all the results exposed and studied in sect
 
 This artifact also contains the benchmark used for the relative performance evaluation in section 3 of the paper.
 
-All the paths to file detailed below implicitly root in the `~/julia/` directory where Julia is installed.
+All the paths to file detailed below implicitly root in the directory where Julia is installed.
 
 ### Launching Julia
 
-The Julia REPL (read-eval-print loop) can be launched by simply executing the command `julia` in a console. Similarly, a Julia file `a.jl` can be executed with `julia a.jl`.
+The Julia REPL (read-eval-print loop) can be launched by simply executing the command `./julia` in a console from the Julia repository. Similarly, a Julia file `a.jl` can be executed with `./julia a.jl`.
 
 Installing a package can be done by executing the Julia command
 ```julia
 Pkg.add("PackageName")
 ```
-`DataStreams`, `Lazy` and `BackpropNeuralNet` are examples of light packages whose test suites do not take too much time to run.
+`DataStreams` and `Lazy` are examples of light packages whose test suites do not take too much time to run. They are already installed in the VM.
 
 ### Fine-grain recording of function calls
 
@@ -95,10 +100,10 @@ To do so, run
 ```julia
 Pkg.test("PackageName")
 ```
-This will generate four different files in the `logs` folder of your home Julia directory:
+This will generate four different files in the `logs` folder of your Julia directory:
 - `PackageName.log` is the raw log, whose structure has been described in the last paragraph.
 - `dyns/PackageName.dyn` is the parsed version of the log.
-- `static/PackageName.static` contains all the methods accessible by the Julia funtime during the tests, regrouped by the function they refine. This information is essentially static, but it is completed by the number of calls and the number of specializations that happened during the tests, which are dynamic values.
+- `static/PackageName.static` contains all the methods accessible by the Julia runtime during the tests, regrouped by the function they refine. This information is essentially static, but it is completed by the number of calls and the number of specializations that happened during the tests, which are dynamic values.
 - `unk/PackageName.unk` contains the name of the functions that were reported in the log but not in the preceding files. They are not true methods: rather, they are builtin Julia functions that cannot be overloaded. As such, they are out of the scope of our study (they represent less than 10 functions in total).
 
 The last three files are Julia file, which can be imported in Julia with
@@ -106,6 +111,8 @@ The last three files are Julia file, which can be imported in Julia with
 obj = load_back(file_path)
 ```
 where `load_back` is defined in `analytics/measure_dispatch`.
+
+`DataStreams` and `Lazy` are already tested in the VM. Note that testing may take significantly more time than without the instrumentation.
 
 ### Analyses reproduction
 
@@ -129,7 +136,9 @@ The files themselves are composed of lines starting with `PackageName:` followed
 
 Many relevant metrics can be obtained by merging the data from different packages (using either strict or soft elimination). The functions from `analytics/combine_data.jl` retrieve data from the `logs/data/` folder and process the combined results for various metrics, such as the number of methods per function for instance.
 
-##### Other versions of Julia
+The data for `DataStreams` and `Lazy` has already been collected in the VM.
+
+##### Other instrumented versions of Julia
 
 The instrumented Julia installation from this artifact runs much slower than the standard one, mostly because method devirtualization is disabled in order to properly record all the function calls. It is thus not suitable for benchmarking.
 
