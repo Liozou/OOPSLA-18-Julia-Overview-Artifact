@@ -464,6 +464,11 @@ function method_redefinitions(t::StaticTable)
     return ret, length(t)
 end
 
+"""
+Given a set of method signatures corresponding to a same function, return the
+number of argument positions dispatched on (ie those for which two methods have
+different type requirement) and the rigthmost such position.
+"""
 function argument_position_dispatch(methods::Set{MSig})
     by_length = Dict{Int, Vector{MSig}}()
     for m in methods
@@ -487,22 +492,14 @@ function argument_position_dispatch(methods::Set{MSig})
     return ret_num, ret_pos
 end
 
-function all_overloads(t::StaticTable, name::AbstractString)
-    ret = String[]
-    for (f, methods) in t
-        if issymbol(f)
-            continue
-        end
-        if any(x->x.modul==name, methods)
-            if any(x->x.modul!=name, methods)
-                push!(ret, f)
-            end
-        end
-    end
-    return ret
-end
+"""
+Compute some metrics from Muschevici et al.
+For dispatch and choice ratios, functions are separated by name only; for the
+three other metrics, they are separated by name and arity.
 
-
+Discrepancy is the average number of functions for which RD!=DoD (not a metric
+in the original article by Muschevici et al.).
+"""
 function muschevici_metrics(t::ShallowTable)
     num_methods = Int[]
     num_arguments = Int[]; pos_arguments = Int[]
@@ -520,6 +517,13 @@ function muschevici_metrics(t::ShallowTable)
     return dispatch_ratio, choice_ratio, degree_dispatch, rightmost_dispatch, discrepancy
 end
 
+"""
+Compute some metrics from Muschevici et al.
+All functions are separated by arity.
+
+Discrepancy is the average number of functions for which RD!=DoD (not a metric
+in the original article by Muschevici et al.).
+"""
 function muschevici_metrics_with_arity(t::ShallowTable)
     num_methods = Int[]
     num_arguments = Int[]; pos_arguments = Int[]
@@ -546,19 +550,6 @@ function muschevici_metrics_with_arity(t::ShallowTable)
     n = length(num_arguments)
     discrepancy = count(num_arguments[i] != pos_arguments[i] for i in 1:n)/n
     return dispatch_ratio, choice_ratio, degree_dispatch, rightmost_dispatch, discrepancy
-end
-
-function degree_of_dispatch(t::ShallowTable)
-    num_arguments = Int[]
-    for (f, methods) in t
-        ret_num, _ = argument_position_dispatch(methods)
-        append!(num_arguments, ret_num)
-    end
-    ret = [0, 0, 0, 0]
-    for x in num_arguments
-        ret[x >= 4 ? 4 : x+1] += 1
-    end
-    return ret
 end
 
 """
@@ -641,7 +632,6 @@ function export_static(logs_dir::AbstractString, suffix="")
     specializations_method = Vector{Int}[]
     muschevici = Tuple{Vararg{Float64, 5}}[]
     muschevici_with_arity = Tuple{Vararg{Float64, 5}}[]
-    dod = Tuple{Vararg{Int, 4}}[]
     for i in eachindex(statics)
         info("Extracting $(names[i])$info_suffix")
         static = statics[i]
@@ -652,7 +642,6 @@ function export_static(logs_dir::AbstractString, suffix="")
         push!(arguments_dispatch, arguments_per_dispatch(shallow))
         push!(muschevici, muschevici_metrics(shallow))
         push!(muschevici_with_arity, muschevici_metrics_with_arity(shallow))
-        push!(dod, (degree_of_dispatch(shallow)...))
     end
     export_data(names, static_address*"../data/static$suffix/methods_per_functionarity.txt", methods_functionarity)
     export_data(names, static_address*"../data/static$suffix/arguments_per_dispatch.txt", arguments_dispatch)
@@ -660,18 +649,17 @@ function export_static(logs_dir::AbstractString, suffix="")
     export_data(names, static_address*"../data/static$suffix/specializations_per_method.txt", specializations_method)
     export_data(names, static_address*"../data/static$suffix/muschevici_metrics.txt", muschevici)
     export_data(names, static_address*"../data/static$suffix/muschevici_metrics_with_arity.txt", muschevici_with_arity)
-    export_data(names, static_address*"../data/static$suffix/degree_of_dispatch.txt", dod)
 end
 
 """
 To launch in the logs directory to collect the different metrics
 """
 function set_logs_dir(logs_dir)
-    refine_statics(logs_dir, false) # static_soft/
-    refine_statics(logs_dir, true) # static_strict/
-    export_static(logs_dir, "") # data/static/
-    export_static(logs_dir, "_soft") # data/static_soft/
-    export_static(logs_dir, "_strict") # data/static_hard/
+    refine_statics(logs_dir, false) # logs/static_soft/
+    refine_statics(logs_dir, true) # logs/static_strict/
+    export_static(logs_dir, "") # logs/data/static/
+    export_static(logs_dir, "_soft") # logs/data/static_soft/
+    export_static(logs_dir, "_strict") # logs/data/static_hard/
     names, funs, nonsinglefunctions = collect_export_specific(logs_dir,
         (targets_per_callsite, methods_per_site, applicable_methods_per_call,
         call_number_per_callsite, call_number_per_method, call_number_per_call_signature,
