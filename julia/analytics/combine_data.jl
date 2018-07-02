@@ -6,6 +6,7 @@ per-package or cross-package metrics.
 =#
 
 LOGS_DIR = "$JULIA_HOME/../../logs/"
+mkpath(LOGS_DIR) # Otherwise the directory is created at the first package test.
 
 
 ## Internal utility functions
@@ -27,7 +28,7 @@ end
 """
 Gives the data points to plot a histogram corresponding to the given vector of integers.
 """
-function hist(l::Vector{Int}, title)
+function hist(l::Vector{Int}, io=STDOUT)
     vals = sort(unique(l))
     index = Dict{Int, Int}()
     for i in eachindex(vals)
@@ -37,9 +38,8 @@ function hist(l::Vector{Int}, title)
     for v in l
         res[index[v]]+=1
     end
-    println(title)
     for x in zip(vals, res)
-        println(x[1],',',x[2])
+        println(io, x[1],',',x[2])
     end
 end
 
@@ -76,10 +76,10 @@ Note that in practise, Julia checks the type of all arguments in order to
 perform multiple dispatch. This verification is done at compile time when
 possible.
 """
-function argument_dispatch(logs_dir=LOGS_DIR)
+function arguments_dispatch(logs_dir=LOGS_DIR, io=STDOUT)
     l = all_in_list(logs_dir*"data/static_strict/arguments_per_dispatch.txt")
     data = vcat(l...)
-    hist(data)
+    hist(data, io)
 end
 
 
@@ -89,9 +89,9 @@ Number of callable methods per call signature.
 A method is considered callable if its signature (ie tuple of types of its
 argument definitions) is a supertype of the call signature.
 """
-function callable_methods_per_call_signature(logs_dir=LOGS_DIR)
+function applicable_methods_per_call_signature(logs_dir=LOGS_DIR, io=STDOUT)
     data = all_in_one(logs_dir*"data/nonsinglefunction/package/applicable_methods_per_call.txt")
-    hist(data)
+    hist(data, io)
 end
 
 
@@ -99,9 +99,9 @@ end
 Number of methods called per call site.
 Collected on functions that had at least two different methods
 """
-function methods_per_callsite(logs_dir=LOGS_DIR)
+function methods_per_callsite(logs_dir=LOGS_DIR, io=STDOUT)
     data = all_in_one(logs_dir*"data/nonsinglefunction/package/methods_per_site.txt")
-    hist(data)
+    hist(data, io)
 end
 
 
@@ -109,10 +109,10 @@ end
 Number of method definitions per function.
 The optional argument `strict` specifies the elimination strategy.
 """
-function methods_per_function(logs_dir=LOGS_DIR, strict=true)
+function methods_per_function(logs_dir=LOGS_DIR, strict=true, io=STDOUT)
     staticity = strict ? "_strict" : "_soft"
     data = all_in_one(logs_dir*"data/static$staticity/methods_per_functionarity.txt")
-    hist(data)
+    hist(data, io)
 end
 
 
@@ -122,18 +122,18 @@ For all user-defined method, the number of specializations done during the tests
 The methods with 0 specialization are those that are not called; they are not
 taken into account in the paper since they are only indicative of the coverage.
 """
-function specializations_per_method(logs_dir=LOGS_DIR)
+function specializations_per_method(logs_dir=LOGS_DIR, io=STDOUT)
     data = all_in_one(logs_dir*"data/static_strict/specializations_per_method.txt")
-    hist(data, "Number of specializations per method")
+    hist(data, io)
 end
 
 
 """
 Number of targets (ie specialized methods) called per call site.
 """
-function targets_per_callsite(logs_dir=LOGS_DIR)
+function targets_per_callsite(logs_dir=LOGS_DIR, io=STDOUT)
     data = all_in_one(logs_dir*"data/function/package/targets_per_callsite.txt")
-    hist(data, "Number of targets per call site")
+    hist(data, io)
 end
 
 
@@ -153,7 +153,7 @@ For each package,
 
 The optional argument `strict` specifies the elimination strategy.
 """
-function number_of_methods_per_functionarity(logs_dir=LOGS_DIR, strict=true)
+function number_of_methods_per_functionarity(logs_dir=LOGS_DIR, strict=true, io=STDOUT)
     names = String[]
     vals = Tuple{Int, Int, Int}[]
     staticity = strict ? "_strict" : "_soft"
@@ -172,7 +172,7 @@ function number_of_methods_per_functionarity(logs_dir=LOGS_DIR, strict=true)
         push!(vals, (val...))
     end
     for i in eachindex(names)
-        println(names[i],',',vals[i][1],',',vals[i][2],',',vals[i][3])
+        println(io, names[i],',',vals[i][1],',',vals[i][2],',',vals[i][3])
     end
 end
 
@@ -191,9 +191,21 @@ The collected metrics are:
 
 The optional argument `strict` specifies the elimination strategy.
 """
-function muschevici_metrics(logs_dir=LOGS_DIR, strict=true)
+function muschevici_metrics(logs_dir=LOGS_DIR, strict=true, io=STDOUT)
     staticity = strict ? "_strict" : "_soft"
     source = logs_dir*"data/static$staticity/muschevici_metrics_with_arity.txt"
     s = readstring(source)
-    println(join(split(join(split(s,":["), ','), ']'), ""))
+    println(io, join(split(join(split(s,":["), ','), ']'), ""))
+end
+
+
+"""
+Number of targets (ie specialized methods) called per call site, per package.
+The call sites are divides into three categories: those with 1 target, with 2
+and those with 3 and more targets.
+"""
+function targets_per_callsite_per_package(logs_dir=LOGS_DIR, io=STDOUT)
+    source = logs_dir*"data/function/package/target_per_callsite_one_two_plus.txt"
+    s = readstring(source)
+    println(io, join(split(join(split(s,":["), ','), ']'), ""))
 end

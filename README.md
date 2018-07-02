@@ -3,7 +3,7 @@
 
 ## Getting Started
 
-If you are using the virtual machine included in the artifact, no further installation is required, you can launch it and Julia v0.6.2 will already be installed.
+If you are using the virtual machine included in the artifact, no further installation is required, you can launch it and Julia v0.6.2 will already be installed. The password is " ", the string composed of exactly one space.
 
 Otherwise:
 - Download the Julia source files from either https://github.com/JuliaLang/julia/releases/tag/v0.6.2 or https://github.com/JuliaLang/julia/tree/v0.6.2. This artifact is made to support Julia v0.6.2: it may not work with subsequent versions of Julia.
@@ -39,11 +39,14 @@ All the paths to file detailed below implicitly root in the directory where Juli
 
 ### Launching Julia
 
-The Julia REPL (read-eval-print loop) can be launched by simply executing the command `./julia` in a console from the Julia repository. Similarly, a Julia file `a.jl` can be executed with `./julia a.jl`.
-
-Installing a package can be done by executing the Julia command
+The Julia REPL (read-eval-print loop) can be launched by simply executing the command `./julia` in a console from the Julia repository. Similarly, a Julia file `a.jl` can be executed with `./julia a.jl`, or from the REPL with
 ```julia
-Pkg.add("PackageName")
+julia> include("PATH_TO_a.jl")
+```
+
+Installing a package can be done by executing from the REPL:
+```julia
+julia> Pkg.add("PackageName")
 ```
 `DataStreams` and `Lazy` are examples of light packages whose test suites do not take too much time to run. They are already installed in the VM.
 
@@ -118,6 +121,8 @@ where `load_back` is defined in `analytics/measure_dispatch`.
 
 The following section explains how to reproduce the results detailed in the "Julia in practice" section of our paper.
 
+Note that the data for `DataStreams` and `Lazy` has already been collected in the VM.
+
 ##### Data collection
 
 Once a number of packages have been tested and their `.log`, `.dyn` and `.static` have been written to disk in the `logs/` folder, the precise metrics can be automatically collected by uncommenting the last line of `analytics/collect_data.jl` and executing the file. The result is stored in the `logs/data/` folder. Leaving the last line commented allows to load the functions from the file without launching the data collecting process.
@@ -136,7 +141,9 @@ The files themselves are composed of lines starting with `PackageName:` followed
 
 Many relevant metrics can be obtained by merging the data from different packages (using either strict or soft elimination). The functions from `analytics/combine_data.jl` retrieve data from the `logs/data/` folder and process the combined results for various metrics, such as the number of methods per function for instance.
 
-The data for `DataStreams` and `Lazy` has already been collected in the VM.
+To reproduce the figures of the paper, execute `analytics/generate_csv.jl` (after having run `set_logs_dir("$JULIA_HOME/../../logs/")`, the comment at the last line of `analytics/collect_data.jl`). This will fill the `logs/csv/` folder with `.csv`, `.data` and `.txt` files.
+- `.csv` and `.data` represent comma-separated data files, the former being specific to the case where there are only two values per line.
+- `.txt` are used for documentation. Each `.txt` file explains the contents of the corresponding either `.csv` or `.data` file with the same name.
 
 ##### Other instrumented versions of Julia
 
