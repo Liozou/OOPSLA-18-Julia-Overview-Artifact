@@ -117,6 +117,8 @@ where `load_back` is defined in `analytics/measure_dispatch`.
 
 `DataStreams` and `Lazy` are already tested in the VM. Note that testing may take significantly more time than without the instrumentation.
 
+The names of the packages used in the article can be found at `analytics/studied_packages.txt`.
+
 ### Analyses reproduction
 
 The following section explains how to reproduce the results detailed in the "Julia in practice" section of our paper.

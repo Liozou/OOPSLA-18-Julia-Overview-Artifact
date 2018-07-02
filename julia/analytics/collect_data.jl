@@ -286,8 +286,8 @@ and .dyn files.
 Filter out functions that are defined in Core, Base, and anonymous and builtin
 functions. Do the computations twice, once for all kept functions and the
 second time without the functions that only have one method.
-The collected data is saved respectively in `data/function` and
-`data/nonsinglefunction`.
+The collected data is saved respectively in `data/function/` and
+`data/nonsinglefunction/`.
 """
 function collect_export_specific(logs_dir::AbstractString, functions)
     statics = Dict{String, StaticTable}()
@@ -584,7 +584,7 @@ have a method defined outside of the module they come from.
 function refine_statics(logs_dir::AbstractString, strict::Bool)
     static_dir = logs_dir*"static/"
     for f in readdir(static_dir)
-        info("Refining "*f[1:end-7])
+        info("Refining "*f[1:end-7]*(strict ? " (strict)" : " (soft)"))
         static = eval(parse(readline(static_dir*f)))
         kept = static_keep(static, f[1:end-7], strict)
         suffix = strict ? "_strict" : "_soft"
@@ -622,11 +622,16 @@ suffix should be either
 """
 function export_static(logs_dir::AbstractString, suffix="")
     study_redefinitions = Dict{String, Set{String}}()
+    if suffix==""
+        info_suffix = ""
+    else
+        info_suffix = " ("*suffix[2:end]*")"
+    end
     global statics = StaticTable[]
     global names = String[]
     static_address = logs_dir*"static$suffix/"
     for f in readdir(static_address) #*.static
-        info("Loading $f")
+        info("Loading $f$info_suffix")
         push!(names, f[1:end-7])
         push!(statics, eval(parse(readline(static_address*f))))
     end
@@ -638,7 +643,7 @@ function export_static(logs_dir::AbstractString, suffix="")
     muschevici_with_arity = Tuple{Vararg{Float64, 5}}[]
     dod = Tuple{Vararg{Int, 4}}[]
     for i in eachindex(statics)
-        info("Extracting $(names[i])")
+        info("Extracting $(names[i])$info_suffix")
         static = statics[i]
         push!(specializations_method, specializations_per_method(static))
         push!(method_redefs, method_redefinitions(static))

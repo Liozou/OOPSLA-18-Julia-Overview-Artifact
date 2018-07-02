@@ -9,8 +9,7 @@ If you have tested a new package and want to update the values:
 2) Execute this file again.
 =#
 
-using Plots
-plotly()
+info("Generating data for the figures")
 
 CSV_DIR = LOGS_DIR*"csv/"
 mkpath(CSV_DIR)
