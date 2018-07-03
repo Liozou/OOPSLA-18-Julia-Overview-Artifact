@@ -1,3 +1,4 @@
+SHELL:=/bin/bash
 GENERATED_INPUT_DIR:=input
 C_SHOOTOUT:=cshootout
 PY_SHOOTOUT:=pyshootout
