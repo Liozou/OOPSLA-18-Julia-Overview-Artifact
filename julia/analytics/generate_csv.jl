@@ -16,7 +16,7 @@ mkpath(CSV_DIR)
 
 
 open(CSV_DIR*"targets_per_callsite_per_package.data", "w") do io
-    prepare_specializations_per_method(LOGS_DIR, io)
+    prepare_targets_per_callsite_per_package(LOGS_DIR, io)
 end
 open(CSV_DIR*"targets_per_callsite_per_package.txt", "w") do io
     println(io, "Number of targets per call site for each package.
