@@ -16,7 +16,7 @@ mkpath(CSV_DIR)
 
 
 open(CSV_DIR*"targets_per_callsite_per_package.data", "w") do io
-    specializations_per_method(LOGS_DIR, io)
+    prepare_specializations_per_method(LOGS_DIR, io)
 end
 open(CSV_DIR*"targets_per_callsite_per_package.txt", "w") do io
     println(io, "Number of targets per call site for each package.
@@ -34,7 +34,7 @@ end
 
 
 open(CSV_DIR*"muschevici_metrics_with_arity_strict.data", "w") do io
-    muschevici_metrics(LOGS_DIR, true, io)
+    prepare_muschevici_metrics(LOGS_DIR, true, io)
 end
 open(CSV_DIR*"muschevici_metrics_with_arity_strict.txt", "w") do io
     println(io, "Collect some of the metrics that are used in the article by Muschevici et al. per package.
@@ -51,7 +51,7 @@ Functions are considered by name arity.
 ")
 end
 open(CSV_DIR*"muschevici_metrics_with_arity_soft.data", "w") do io
-    muschevici_metrics(LOGS_DIR, false, io)
+    prepare_muschevici_metrics(LOGS_DIR, false, io)
 end
 open(CSV_DIR*"muschevici_metrics_with_arity_soft.txt", "w") do io
     println(io, "Collect some of the metrics that are used in the article by Muschevici et al. per package.
@@ -70,7 +70,7 @@ end
 
 
 open(CSV_DIR*"arguments_dispatch.csv", "w") do io
-    arguments_dispatch(LOGS_DIR, io)
+    prepare_arguments_dispatch(LOGS_DIR, io)
 end
 open(CSV_DIR*"arguments_dispatch.txt", "w") do io
     println(io, "Number of arguments dispatched on per function/arity.
@@ -86,9 +86,18 @@ Note: The winner function for the number of arguments dispatched on is Base.Lina
 ")
 end
 
+open(CSV_DIR*"method_redefinitions.data", "w") do io
+    prepare_method_redefinitions(LOGS_DIR, io)
+end
+open(CSV_DIR*"method_redefinitions.txt", "w") do io
+    println(io, "For each package, a pair whose first element is the number of functions that have methods defined in at least two different packages, and whose second element is the total number of considered functions.
+
+Collected on the static data for the functions that had at least one method definition in the studied package. For the purpose of this study, Core, Base and Compat have been considered to be the same package.")
+end
+
 
 open(CSV_DIR*"specializations_per_method.csv", "w") do io
-    specializations_per_method(LOGS_DIR, io)
+    prepare_specializations_per_method(LOGS_DIR, io)
 end
 open(CSV_DIR*"specializations_per_method.txt", "w") do io
     println(io, "For all user-defined method, the number of specializations done.
@@ -104,7 +113,7 @@ The methods with 0 specialization are those that are not called, they are not ta
 end
 
 open(CSV_DIR*"applicable_methods_per_call_signature.csv", "w") do io
-    specializations_per_method(LOGS_DIR, io)
+    prepare_applicable_methods_per_call_signature(LOGS_DIR, io)
 end
 open(CSV_DIR*"applicable_methods_per_call_signature.txt", "w") do io
     println(io, "For each call signature the number of applicable methods.

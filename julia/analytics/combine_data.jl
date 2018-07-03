@@ -76,7 +76,7 @@ Note that in practise, Julia checks the type of all arguments in order to
 perform multiple dispatch. This verification is done at compile time when
 possible.
 """
-function arguments_dispatch(logs_dir=LOGS_DIR, io=STDOUT)
+function prepare_arguments_dispatch(logs_dir=LOGS_DIR, io=STDOUT)
     l = all_in_list(logs_dir*"data/static_strict/arguments_per_dispatch.txt")
     data = vcat(l...)
     hist(data, io)
@@ -89,7 +89,7 @@ Number of callable methods per call signature.
 A method is considered callable if its signature (ie tuple of types of its
 argument definitions) is a supertype of the call signature.
 """
-function applicable_methods_per_call_signature(logs_dir=LOGS_DIR, io=STDOUT)
+function prepare_applicable_methods_per_call_signature(logs_dir=LOGS_DIR, io=STDOUT)
     data = all_in_one(logs_dir*"data/nonsinglefunction/package/applicable_methods_per_call.txt")
     hist(data, io)
 end
@@ -99,7 +99,7 @@ end
 Number of methods called per call site.
 Collected on functions that had at least two different methods
 """
-function methods_per_callsite(logs_dir=LOGS_DIR, io=STDOUT)
+function prepare_methods_per_callsite(logs_dir=LOGS_DIR, io=STDOUT)
     data = all_in_one(logs_dir*"data/nonsinglefunction/package/methods_per_site.txt")
     hist(data, io)
 end
@@ -109,7 +109,7 @@ end
 Number of method definitions per function.
 The optional argument `strict` specifies the elimination strategy.
 """
-function methods_per_function(logs_dir=LOGS_DIR, strict=true, io=STDOUT)
+function prepare_methods_per_function(logs_dir=LOGS_DIR, strict=true, io=STDOUT)
     staticity = strict ? "_strict" : "_soft"
     data = all_in_one(logs_dir*"data/static$staticity/methods_per_functionarity.txt")
     hist(data, io)
@@ -122,7 +122,7 @@ For all user-defined method, the number of specializations done during the tests
 The methods with 0 specialization are those that are not called; they are not
 taken into account in the paper since they are only indicative of the coverage.
 """
-function specializations_per_method(logs_dir=LOGS_DIR, io=STDOUT)
+function prepare_specializations_per_method(logs_dir=LOGS_DIR, io=STDOUT)
     data = all_in_one(logs_dir*"data/static_strict/specializations_per_method.txt")
     hist(data, io)
 end
@@ -131,7 +131,7 @@ end
 """
 Number of targets (ie specialized methods) called per call site.
 """
-function targets_per_callsite(logs_dir=LOGS_DIR, io=STDOUT)
+function prepare_targets_per_callsite(logs_dir=LOGS_DIR, io=STDOUT)
     data = all_in_one(logs_dir*"data/function/package/targets_per_callsite.txt")
     hist(data, io)
 end
@@ -153,7 +153,7 @@ For each package,
 
 The optional argument `strict` specifies the elimination strategy.
 """
-function number_of_methods_per_functionarity(logs_dir=LOGS_DIR, strict=true, io=STDOUT)
+function prepare_number_of_methods_per_functionarity(logs_dir=LOGS_DIR, strict=true, io=STDOUT)
     names = String[]
     vals = Tuple{Int, Int, Int}[]
     staticity = strict ? "_strict" : "_soft"
@@ -191,7 +191,7 @@ The collected metrics are:
 
 The optional argument `strict` specifies the elimination strategy.
 """
-function muschevici_metrics(logs_dir=LOGS_DIR, strict=true, io=STDOUT)
+function prepare_muschevici_metrics(logs_dir=LOGS_DIR, strict=true, io=STDOUT)
     staticity = strict ? "_strict" : "_soft"
     source = logs_dir*"data/static$staticity/muschevici_metrics_with_arity.txt"
     s = readstring(source)
@@ -204,8 +204,20 @@ Number of targets (ie specialized methods) called per call site, per package.
 The call sites are divides into three categories: those with 1 target, with 2
 and those with 3 and more targets.
 """
-function targets_per_callsite_per_package(logs_dir=LOGS_DIR, io=STDOUT)
+function prepare_targets_per_callsite_per_package(logs_dir=LOGS_DIR, io=STDOUT)
     source = logs_dir*"data/function/package/target_per_callsite_one_two_plus.txt"
+    s = readstring(source)
+    println(io, join(split(join(split(s,":["), ','), ']'), ""))
+end
+
+
+"""
+Number of functions that have at least a definition in two different packages.
+Given per package with only functions that have a method in the considered
+package. For each package, also give the number of considered functions in total.
+"""
+function prepare_method_redefinitions(logs_dir=LOGS_DIR, io=STDOUT)
+    source = logs_dir*"data/static_soft/method_redefinitions.txt"
     s = readstring(source)
     println(io, join(split(join(split(s,":["), ','), ']'), ""))
 end
