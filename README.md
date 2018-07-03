@@ -1,79 +1,74 @@
-# Artifact for _Julia: Dynamism and Performance Reconciled by Design_ (OOPSLA '18)
+# Julia: Dynamism and Performance Reconciled by Design (ARTIFACT)
 
+This artifact contains the following:
+
+- A release of Julia v0.6.2, instrumented to allow to dynamically record function calls and to do both static and dynamic analyses on packages. This is in the `julia/` directory.
+- A release of Julia v0.6.2 and LLVM suitable for recompilation at different optimization levels. This is in the `julia-benchmark/` directory.
+
+This will allow to replicate the following results:
+- Fig 7, pg. 5: Slowdown relative to C.
+- Fig. 14, pg.15.  Targets per call site.
+- Fig. 12, pg.16: Numbers of method and types
+- Fig. 13, pg.16: Percentage of type annotations
+- Fig. 16 pg. 17: Dispatch ratios
+- Fig. 17 and 18 pg. 18: Num arguments dispatched on, %overload
+- Fig. 20 and 21 pg. 20: Num specialization per met, Applicable methods
+- Source data for fig. 22 pg. 20: Optimization and performance.
+
+The following results are not supported in the artifact:
+- Fig. 6, pg. 4: Person-year. Requires analysis of commit logs. This is not a key result; code omitted.
+- Fig 9, pg. 11: Source code lines. Obtained by cloc. This was not automated.
+- Fig. 15 pg. 17: Muschevici et al. metrics. Data comes from Muschevici et al. [2008]
+- Fig. 19 pg. 19: Function overloads by category. Obtained by manually classifying 128 function names into the different categories.
 
 ## Getting Started
 
-If you are using the virtual machine included in the artifact, no further installation is required, you can launch it and Julia v0.6.2 will already be installed. The password is " ", the string composed of exactly one space.
+Our artifact is included in a VirtualBox VM. The password for root and the user artifact is " " (one space). To start, open the artifact directory on the desktop of the virtual machine. Paths referred to in this document will be relative to the `artifact/` directory.
 
-Otherwise:
-- Download the Julia source files from either https://github.com/JuliaLang/julia/releases/tag/v0.6.2 or https://github.com/JuliaLang/julia/tree/v0.6.2. This artifact is made to support Julia v0.6.2: it may not work with subsequent versions of Julia.
-- Merge the contents of the `julia/` folder of the artifact with the Julia repository you just downloaded.
-- Build Julia by using the command `make` with no option in the Julia repository. This can take up to a few hours.
-- Install the JSON package by executing `Pkg.add("JSON")` from the Julia REPL. The REPL can be launched by executing `$JULIA_DIRECTORY/usr/bin/julia`. This should take a few minutes.
+### Main figures
 
-The main modifications in the code of the modified files are placed as
-```C
-//>>> Instrumentation
-modified code
-//<<< Instrumentation
-```
-for C code and as
-```julia
-#>>> Instrumentation
-modified code
-#<<< Instrumentation
-```
-for Julia code.
+We have bundled the instructions for generating the data for our work in a runnable script. From a terminal in `~/Desktop/artifact/`, type:
 
-## Step by Step Instructions
-
-This artifact presents our method to
-- statically record all the methods and types defined in a Julia package
-- dynamically record all the function calls that appear between two points of a program. This consists in recording the function name, the call site, the called method and the types of each argument to the function.
-
-These combined metrics allow to give all the results exposed and studied in section 6 of the paper.
-
-This artifact also contains the benchmark used for the relative performance evaluation in section 3 of the paper.
-
-All the paths to file detailed below implicitly root in the directory where Julia is installed.
-
-### Launching Julia
-
-The Julia REPL (read-eval-print loop) can be launched by simply executing the command `./julia` in a console from the Julia repository. Similarly, a Julia file `a.jl` can be executed with `./julia a.jl`, or from the REPL with
-```julia
-julia> include("PATH_TO_a.jl")
+```sh
+./make_plots.sh
 ```
 
-Installing a package can be done by executing from the REPL:
-```julia
-julia> Pkg.add("PackageName")
-```
-`DataStreams` and `Lazy` are examples of light packages whose test suites do not take too much time to run. They are already installed in the VM.
+This will generate the data and plots for figure 7,12, 13, 14, 16, 17, 20 and 21. This is expected to take between 5 to 10 minutes, depending on hardware virtualization support and performance. To check that this worked, look in the `plots/` subdirectory, which should have several PDFs containing versions of the figures in the paper. Source data will be placed into the `data/` subdirectory. For figure 22, multiple versions of Julia compiled at different optimization levels are required.
 
-### Fine-grain recording of function calls
+### Reproducing Figure 22
+Reproducing Fig 22 requires building Julia with different optimizations disabled. This is time consuming and invasive, so we have prepared a separate directory with all of the code you will need for this. This is bundled as part of the julia-benchmark folder, which is also used for executing the benchmarks. To compile and run the benchmarks with Julia compiled using different optimization flags, do the following:
 
-To record all the function calls between point A and point B of a program:
-- at point A, add the line
-```julia
-ccall(:jl_start_instrumentation, Void, ())
+```sh
+cd julia-benchmark
+make opt-zero
+make run-opt-zero
+make no-inf
+make run-no-inf
+make no-devirt
+make run-no-devirt
 ```
-- at point B, add the line
-```julia
-ccall(:jl_end_instrumentation, Void, ())
+The above will cause Julia to be built and to run of the benchmarks. Each one will take between 15 and 20 minutes depending on performance and hardware virtualization support. Benchmark results will be placed in the `julia-benchmark/benchmark_results` directory. To revert the state to the baseline, run:
+
+```sh
+make julia-O2
 ```
-- to interrupt the recording, add the line
-```julia
-ccall(:jl_stop_instrumentation, Void, ())
-```
-at the required place. The recording can be resumed with
-```julia
-ccall(:jl_start_instrumentation, Void, ())
-```
-- The record will be written on the standard error buffer: you should thus reroute stderr into the file where you want to store the log – this is done on the command line by using
-    ```bash
-    command 2> LOG_NAME
-    ```
-This limitation is inherent to our recording method. Note that as a consequence, the log may be polluted by error messages sent by the Julia runtime: these should only appear before and after the actual log, not in the middle of it, so they can easily be removed. This is also one of the reasons why we only kept packages that passed their own test suites to do our analyses, so as not to be polluted by these errors.
+from inside the julia-benchmark folder.
+
+For additional background, running Julia with no LLVM optimization is simply done by `julia -O0`, disabling type inference required us to replace file  `jl_type_infer` in `src/gf.c` with an identical file with line 236 having `return NULL;` and recompiling, and disabling method devirtualization was done by commenting out line 2905 of `base/inference.jl`. Recompilation of Julia should be around 15 minutes long.
+
+
+## Additional information
+
+The instrumented Julia REPL is launched by typing `julia/julia` from the base directory.
+
+Installing a package can be done by typing `Pkg.add("PackageName")`. Packages `DataStreams` and `Lazy` are examples already installed in the VM.
+
+Now we give more details about some of our infrastructure for the interested reader.
+
+### Recording function calls
+To record function calls between two points, add the following lines to the code. To start recording `ccall(:jl_start_instrumentation, Void, ())`  and to end it `ccall(:jl_end_instrumentation, Void, ())`.  Recording can be paused by `ccall(:jl_stop_instrumentation, Void, ())` and restarted with `ccall(:jl_start_instrumentation, Void, ())`.  The record is written to standard error which should be piped into a log file.
+
+The log may be polluted by Julia error messages. These should only appear before and after the actual log, not in the middle of it, so they can easily be removed.
 
 The log will consist in call traces separated by empty lines. A call trace has the following structure:
 ```
@@ -96,109 +91,60 @@ val_2Z
 
 A parser for these logs is the `parse_perf` function, given in `analytics/parse_performance.jl`.
 
-### Recording of package test suites
+### Recording test suites
 
-This artifact modifies the `Pkg.test` function in order to automatically record all the function call traces while running package test suites.
-To do so, run
+We modified the Julia `Pkg.test` function to record all calls occuring during package test suites. To do so, run
 ```julia
-Pkg.test("PackageName")
+Pkg.test("P")
 ```
-This will generate four different files in the `logs` folder of your Julia directory:
-- `PackageName.log` is the raw log, whose structure has been described in the last paragraph.
-- `dyns/PackageName.dyn` is the parsed version of the log.
-- `static/PackageName.static` contains all the methods accessible by the Julia runtime during the tests, regrouped by the function they refine. This information is essentially static, but it is completed by the number of calls and the number of specializations that happened during the tests, which are dynamic values.
-- `unk/PackageName.unk` contains the name of the functions that were reported in the log but not in the preceding files. They are not true methods: rather, they are builtin Julia functions that cannot be overloaded. As such, they are out of the scope of our study (they represent less than 10 functions in total).
+This generates 4 files in the `logs` folder. `P.log` is the raw log. `dyns/P.dyn` is the parsed version of the log. `static/P.static` contains all the methods accessible during the tests, grouped by the function they refine. This information is essentially static, but it is completed by the number of calls and the number of specializations that happened during the tests, which are dynamic values. `unk/P.unk` contains the names of the functions in the dynamic log but not in the static data. They are not true methods: rather, they are builtin functions that cannot be overloaded. As such, they are out of the scope of our study (less than 10 functions in total).
 
 The last three files are Julia file, which can be imported in Julia with
 ```julia
-obj = load_back(file_path)
+obj = load_back(“file_path”)
 ```
-where `load_back` is defined in `analytics/measure_dispatch`.
+where `load_back` is defined in `analytics/measure_dispatch`. `DataStreams` and `Lazy` are already tested in the VM. Note that testing may take significantly more time than without the instrumentation. The names of the packages used in the article can be found at `analytics/studied_packages.txt`.
 
-`DataStreams` and `Lazy` are already tested in the VM. Note that testing may take significantly more time than without the instrumentation.
+### Analyses
 
-The names of the packages used in the article can be found at `analytics/studied_packages.txt`.
+The data for `DataStreams` and `Lazy` has already been collected in the VM.
 
-### Analyses reproduction
+#### Data collection
 
-The following section explains how to reproduce the results detailed in the "Julia in practice" section of our paper.
+Once `.log`, `.dyn` and `.static` files are in the `julia/logs/` folder, the metrics can be collected by uncommenting the last line of `julia/analytics/collect_data.jl` and executing the file. The result is stored in the `julia/logs/data/` folder. Leaving the last line commented allows to load the functions from the file without launching the data collecting process.
 
-Note that the data for `DataStreams` and `Lazy` has already been collected in the VM.
+Two directories are also created, `julia/logs/static_soft/` and `julia/logs/static_strict/` which contain `.static` files analogous to those in `julia/logs/static/`. They correspond to the functions that passed either the _strict_ or the _soft_ elimination, as defined in the paper.
 
-##### Data collection
-
-Once a number of packages have been tested and their `.log`, `.dyn` and `.static` have been written to disk in the `logs/` folder, the precise metrics can be automatically collected by uncommenting the last line of `analytics/collect_data.jl` and executing the file. The result is stored in the `logs/data/` folder. Leaving the last line commented allows to load the functions from the file without launching the data collecting process.
-
-Two directories are also created, `logs/static_soft/` and `logs/static_strict/` which contain `.static` files analogous to those in `logs/static/`. They correspond to the functions that passed either the _strict_ or the _soft_ elimination, as defined in the paper.
-
-The `logs/data/` folder itself is subdivided into five different subfolders:
+The `julia/logs/data/` folder itself is subdivided into five different subfolders:
 - `function`: dynamic data collected on functions that were not generated by the compiler nor anonymous
 - `nonsinglefunction`: refines the precedent class by only keeping functions with at least two methods.
 - `static`: static data collected on all functions not generated by the compiler nor anonymous.
 - `static_strict`: refines the `static` data with strict elimination.
 - `static_soft`: refines the `static` data with soft elimination.
 
-Each of the produced files has a name of the form "source.txt" where `source` is the name of the function from `analytics/collect_data.jl` that generated the data.
+Each of the produced files has a name of the form "source.txt" where `source` is the name of the function from `julia/analytics/collect_data.jl` that generated the data.
 The files themselves are composed of lines starting with `PackageName:` followed by the relevant data for the given package. Refer to the documentation of each generating function for more details about the data.
 
 Many relevant metrics can be obtained by merging the data from different packages (using either strict or soft elimination). The functions from `analytics/combine_data.jl` retrieve data from the `logs/data/` folder and process the combined results for various metrics, such as the number of methods per function for instance.
 
-To reproduce the figures of the paper, execute `analytics/generate_csv.jl` (after having run `set_logs_dir("$JULIA_HOME/../../logs/")`, the comment at the last line of `analytics/collect_data.jl`). This will fill the `logs/csv/` folder with `.csv`, `.data` and `.txt` files.
+To obtain the data for the figures of the paper, execute `analytics/generate_csv.jl` (after having run `set_logs_dir("$JULIA_HOME/../../logs/")`, the comment at the last line of `analytics/collect_data.jl`). This will fill the `logs/csv/` folder with `.csv`, `.data` and `.txt` files.
 - `.csv` and `.data` represent comma-separated data files, the former being specific to the case where there are only two values per line.
 - `.txt` are used for documentation. Each `.txt` file explains the contents of the corresponding either `.csv` or `.data` file with the same name.
 
-##### Other instrumented versions of Julia
-
-The instrumented Julia installation from this artifact runs much slower than the standard one, mostly because method devirtualization is disabled in order to properly record all the function calls. It is thus not suitable for benchmarking.
-
-To perform benchmarking with the original Julia performance, the modifications from the artifact must be removed, using the line commands
-```bash
-$ git checkout *; make
-```
-from the Julia installation directory.
-The recompilation should take less than fifteen minutes.
-
-The different optimization cuts observed in figure "Optimization and performance" can be reproduced with the following settings:
-- to run Julia with no optimization caused by LLVM, simply run
-```bash
-julia -O0
-```
-from the command line.
-- to disable type inference, add a
-```C
-return NULL;
-```
-at the very beginning of the definition of `jl_type_infer` in `src/gf.c`, line 236, and recompile. This recompilation should take less than a minute.
-- to disable method devirtualization, comment out line 2905 of `base/inference.jl` stating
-```julia
-inlining_pass!(me)
-```
-and recompile Julia. This recompilation should take less than fifteen minutes.
-
-Don't forget to undo the previous modification between each step to specifically benchmark with one of the features disabled.
 
 ### Micro-benchmarks
 
-Benchmark source code for Julia, untyped Julia, JavaScript, C, and Python is included as part of the artifact, along with
-our execution harness. The VM image contains their source, but is not configured to execute them.
+Benchmark source code for Julia, untyped Julia, JavaScript, C, and Python is included as part of the artifact, along with our execution harness. The VM image contains their source, but is not configured to execute them. The following prerequisites are required to run the benchmarks:
 
-#### Prerequisites
-
-The following prerequisites are required to run the benchmarks:
-
-* **Python 3.5.3 or later**
-* **Node.js v8.11.1 or later**
-* **Julia 0.6.2**
-* **gcc 6.3.0 or later**
-* **R 3.4.4** (to recreate the figure in the paper)
+* Python 3.5.3
+* Node.js v8.11.1
+* Julia 0.6.2
+* gcc 6.3.0
+* R 3.4.4
 
 Node dependencies are in the package-lock.json file inside the jsshootout folder.
 
-#### Organization
-
-Benchmarks reside within the `benchmarks` folder, which contains both the implementations and the runner infrastructure.
-Execution is via the makefile at the top level, which both compiles and runs the benchmarks on demand. The folders serve
-the following purposes:
+Benchmarks reside within the `analysis/benchmarks` folder, which contains both the implementations and the runner infrastructure. Execution is via the makefile at the top level, which both compiles and runs the benchmarks on demand. The folders serve the following purposes:
 
 * `benchmark_defns` defining benchmark sizes;
 * `cshootout` for C benchmarks
@@ -207,10 +153,6 @@ the following purposes:
 * `jsshooutout` for Javascript benchmarks
 * `pyshootout` for Python benchmarks
 * `results` for the data in the figure as well as the scripts to generate the figure from the paper.
-
-Untyped Julia benchmarks are supplemental to the data in the paper.
-
-#### Running
 
 Each language's benchmark suite has its own target, and the default target is the Julia benchmark. Available targets are:
 
@@ -221,12 +163,7 @@ Each language's benchmark suite has its own target, and the default target is th
 * `run_c_benchmarks` for C benchmarks;
 * `run_pypy_benchmarks` for (supplemental) PyPy benchmarks (requires PyPy).
 
-The benchmarks, from the Programming Language Benchmark Game, are parameterized over problem sizes defined in `benchmark_defns`.
-Numbers reported in the paper come from `full_size.sh`, but `small_size.sh` can be used while testing the environment for quick
+The benchmarks, from the Programming Language Benchmark Game, are parameterized over problem sizes defined in `benchmark_defns`. Numbers reported in the paper come from `full_size.sh`, but `small_size.sh` can be used while testing the environment for quick
 execution. Which benchmark size is used is defined by the `BENCHMARK` variable in the Makefile.
 
-The Makefile allows the specification of the implementation for each language via the `JULIA` and `PYTHON` variables. It defaults
-to assuming that they are on the path with names `julia` and `python3`, respectively, but this can be configured by changing their
-definitions in the Makefile.
-
-By default, performance results will only be written to stdout. To specify a target folder, set the `OUTPUT` variable in the Makefile.
+The Makefile allows the specification of the implementation for each language via the `JULIA` and `PYTHON` variables. It defaults to assuming that they are on the path with names `julia` and `python3`, respectively, but this can be configured by changing their definitions in the Makefile. By default, performance results will only be written to stdout. To specify a target folder, set the `OUTPUT` variable in the Makefile.
